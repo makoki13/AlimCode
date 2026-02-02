@@ -1,7 +1,25 @@
 import 'package:flutter/material.dart';
+import 'home_screen.dart'; // Importamos la pantalla principal
 
-class InitScreen extends StatelessWidget {
+class InitScreen extends StatefulWidget {
   const InitScreen({super.key});
+
+  @override
+  State<InitScreen> createState() => _InitScreenState();
+}
+
+class _InitScreenState extends State<InitScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Simulamos una carga de 2 segundos y navegamos a HomeScreen
+    Future.delayed(const Duration(seconds: 2), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,9 +29,9 @@ class InitScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Imagen de logo (asegúrate de tenerla en assets/images/logo.png)
+            // Imagen de logo
             Image.asset(
-              'assets/images/logo.png', // Ruta de la imagen
+              'assets/images/logo.png',
               width: 150,
               height: 150,
               fit: BoxFit.contain,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/init_screen.dart'; // Importamos la nueva pantalla
+import 'screens/init_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.green,
       ),
-      home: const InitScreen(), // Cambiamos la pantalla inicial a InitScreen
+      home: const InitScreen(), // Eliminamos initialRoute y routes
     );
   }
 }

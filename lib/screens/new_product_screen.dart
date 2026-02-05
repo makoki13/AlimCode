@@ -63,7 +63,7 @@ class _NewProductFormScreenState extends State<NewProductScreen> {
               TextFormField(
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
-                  labelText: 'Cantidad',
+                  labelText: 'Cantidad en la unidad de compra',
                   border: OutlineInputBorder(),
                 ),
                 onSaved: (value) {
@@ -84,7 +84,9 @@ class _NewProductFormScreenState extends State<NewProductScreen> {
                       tipo: _tipo!,
                       preparacion: _preparacion ?? '',
                       cantidad: _cantidad ?? 0.0,
-                      bar: widget.bar ?? Bar(''), // Usamos el código de barras recibido
+                      bar:
+                          widget.bar ??
+                          Bar(''), // Usamos el código de barras recibido
                     );
 
                     // Aquí puedes agregar la lógica para guardar el alimento
@@ -96,7 +98,9 @@ class _NewProductFormScreenState extends State<NewProductScreen> {
 
                     // Opcional: Mostrar un mensaje de éxito
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Producto guardado correctamente.')),
+                      const SnackBar(
+                        content: Text('Producto guardado correctamente.'),
+                      ),
                     );
 
                     // Volver a la pantalla anterior

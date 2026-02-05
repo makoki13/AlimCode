@@ -29,15 +29,17 @@ class HomeScreen extends StatelessWidget {
                       bool encontrado = await BarItems.existeBar(bar);
 
                       if (!encontrado) {
-                        // Mostrar mensaje de error
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("El código de barras leído no ha sido encontrado."),
-                            backgroundColor: Colors.red,
+                      // Navegar a la pantalla de formulario
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NewProductScreen(bar: bar),
                           ),
                         );
-                      }
+                      } 
+                      else {
                       // Aquí puedes agregar la lógica para el caso en que sí se encuentre
+                      }
                     },
                     child: Container(
                       decoration: BoxDecoration(

@@ -1,3 +1,4 @@
+import 'package:alimcode/screens/list_alimentos_screen.dart';
 import 'package:flutter/material.dart';
 import 'search_screen.dart';
 import 'new_product_screen.dart';
@@ -29,16 +30,38 @@ class HomeScreen extends StatelessWidget {
                       bool encontrado = await BarItems.existeBar(bar);
 
                       if (!encontrado) {
-                      // Navegar a la pantalla de formulario
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => NewProductScreen(bar: bar),
-                          ),
+                        // Mostrar popup de error
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text("Código no encontrado"),
+                              content: const Text(
+                                "El código de barras leído no ha sido encontrado.",
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(
+                                      context,
+                                    ).pop(); // Cerrar el popup
+                                    // Navegar a la pantalla de formulario
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            NewProductScreen(bar: bar),
+                                      ),
+                                    );
+                                  },
+                                  child: const Text("Aceptar"),
+                                ),
+                              ],
+                            );
+                          },
                         );
-                      } 
-                      else {
-                      // Aquí puedes agregar la lógica para el caso en que sí se encuentre
+                      } else {
+                        // Aquí puedes agregar la lógica para el caso en que sí se encuentre
                       }
                     },
                     child: Container(
@@ -71,7 +94,7 @@ class HomeScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const SearchScreen(),
+                              builder: (context) => const ListAlimentosScreen(),
                             ),
                           );
                         },

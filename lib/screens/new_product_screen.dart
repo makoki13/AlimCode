@@ -1,6 +1,7 @@
-import 'package:alimcode/models/alimento.dart';
 import 'package:flutter/material.dart';
+import '../models/alimento.dart';
 import '../models/bar.dart';
+import '../database/database_helper.dart';
 
 class NewProductScreen extends StatefulWidget {
   final Bar? bar; // Recibe opcionalmente el código de barras no encontrado
@@ -8,10 +9,10 @@ class NewProductScreen extends StatefulWidget {
   const NewProductScreen({super.key, this.bar});
 
   @override
-  State<NewProductScreen> createState() => _NewProductFormScreenState();
+  State<NewProductScreen> createState() => _NewProductScreenState();
 }
 
-class _NewProductFormScreenState extends State<NewProductScreen> {
+class _NewProductScreenState extends State<NewProductScreen> {
   final _formKey = GlobalKey<FormState>();
   String? _tipo;
   String? _preparacion;
@@ -59,7 +60,7 @@ class _NewProductFormScreenState extends State<NewProductScreen> {
                 onSaved: (value) => _preparacion = value,
               ),
               const SizedBox(height: 16),
-              // Campo: Cantidad
+              // Campo: Cantidad en la unidad de compra
               TextFormField(
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
@@ -75,7 +76,7 @@ class _NewProductFormScreenState extends State<NewProductScreen> {
               const SizedBox(height: 24),
               // Botón de guardar
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
 
@@ -89,22 +90,30 @@ class _NewProductFormScreenState extends State<NewProductScreen> {
                           Bar(''), // Usamos el código de barras recibido
                     );
 
-                    // Aquí puedes agregar la lógica para guardar el alimento
-                    // Por ahora solo imprimimos los valores
-                    print('Tipo: ${alimento.tipo}');
-                    print('Preparación: ${alimento.preparacion}');
-                    print('Cantidad: ${alimento.cantidad}');
-                    print('Código de barras: ${alimento.bar.codigo}');
+                    // Guardamos en la base de datos
+                    final dbHelper = DatabaseHelper();
+                    try {
+                      await dbHelper.insertAlimento(alimento);
 
-                    // Opcional: Mostrar un mensaje de éxito
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Producto guardado correctamente.'),
-                      ),
-                    );
+                      // Mostrar mensaje de éxito
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Producto guardado correctamente en la base de datos.',
+                          ),
+                        ),
+                      );
 
-                    // Volver a la pantalla anterior
-                    Navigator.pop(context);
+                      // Volver a la pantalla anterior
+                      Navigator.pop(context);
+                    } catch (e) {
+                      // Mostrar mensaje de error
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error al guardar el producto: $e'),
+                        ),
+                      );
+                    }
                   }
                 },
                 child: const Text('Guardar Producto'),

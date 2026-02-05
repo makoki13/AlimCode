@@ -18,11 +18,7 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'alimentos.db');
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _onCreate,
-    );
+    return await openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -38,6 +34,13 @@ class DatabaseHelper {
   }
 
   Future<int> insertAlimento(Alimento alimento) async {
+    print('Insertando alimento:');
+    print('Tipo: ${alimento.tipo}');
+    print('Preparación: ${alimento.preparacion}');
+    print('Cantidad: ${alimento.cantidad}');
+    print(
+      'Código de barras: "${alimento.bar.codigo}"',
+    ); // ← Agrega comillas para ver si es vacío
     final db = await database;
     return await db.insert('alimentos', {
       'tipo': alimento.tipo,

@@ -12,4 +12,7 @@ class Alimento {
     required this.cantidad,
     required this.bar,
   });
+
+  @override
+  String toString() => "$tipo-$preparacion-$cantidad-$bar";
 }

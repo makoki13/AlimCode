@@ -1,15 +1,25 @@
 import 'package:alimcode/screens/list_alimentos_screen.dart';
 import 'package:flutter/material.dart';
-import 'search_screen.dart';
 import 'new_product_screen.dart';
 import '../services/bar_items.dart';
 import '../models/bar.dart'; // Asegúrate de importar Bar
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late Bar bar = Bar(''); // Variable compartida
+
+  @override
   Widget build(BuildContext context) {
+    // Código de barras simulado
+    final codigo = "00000000000000";
+    bar = Bar(codigo); // Asignamos el valor aquí
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -23,10 +33,6 @@ class HomeScreen extends StatelessWidget {
                 child: Center(
                   child: GestureDetector(
                     onTap: () async {
-                      // Código de barras simulado
-                      final codigo = "00000000000000";
-                      final bar = Bar(codigo);
-
                       bool encontrado = await BarItems.existeBar(bar);
 
                       if (!encontrado) {
@@ -42,15 +48,12 @@ class HomeScreen extends StatelessWidget {
                               actions: [
                                 TextButton(
                                   onPressed: () {
-                                    Navigator.of(
-                                      context,
-                                    ).pop(); // Cerrar el popup
+                                    Navigator.of(context).pop(); // Cerrar el popup
                                     // Navegar a la pantalla de formulario
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>
-                                            NewProductScreen(bar: bar),
+                                        builder: (context) => NewProductScreen(bar: bar),
                                       ),
                                     );
                                   },
@@ -109,7 +112,7 @@ class HomeScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const NewProductScreen(),
+                              builder: (context) => NewProductScreen(bar: bar), // ✅ Comparte la misma variable
                             ),
                           );
                         },

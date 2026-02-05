@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'search_screen.dart';
 import 'new_product_screen.dart';
+import '../services/bar_items.dart';
+import '../models/bar.dart'; // Asegúrate de importar Bar
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -19,8 +21,23 @@ class HomeScreen extends StatelessWidget {
                 flex: 3,
                 child: Center(
                   child: GestureDetector(
-                    onTap: () {
-                      // Acción cuando se presiona el botón de código de barras
+                    onTap: () async {
+                      // Código de barras simulado
+                      final codigo = "00000000000000";
+                      final bar = Bar(codigo);
+
+                      bool encontrado = await BarItems.existeBar(bar);
+
+                      if (!encontrado) {
+                        // Mostrar mensaje de error
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("El código de barras leído no ha sido encontrado."),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                      // Aquí puedes agregar la lógica para el caso en que sí se encuentre
                     },
                     child: Container(
                       decoration: BoxDecoration(

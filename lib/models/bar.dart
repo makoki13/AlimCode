@@ -13,4 +13,6 @@ class Bar {
 
   @override
   int get hashCode => ean13.hashCode;
+
+  get codigo => null;
 }

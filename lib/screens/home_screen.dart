@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    bar = Bar('0000000000000'); // Inicializamos aquí
+    bar = Bar('0000000000001'); // Inicializamos aquí
   }
 
   @override

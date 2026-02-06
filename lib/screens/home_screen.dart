@@ -20,31 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    bar = Bar('0000000000019'); // Inicializamos aquí
-  }
-
-  // Función separada para manejar la navegación después de cerrar el diálogo
-  void _crearProductoYPrecio(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => NewProductScreen(bar: bar)),
-    ).then((result) async {
-      if (result != null) {
-        // Solo si se creó un producto
-        print("DEBUG: Entramos en PrecioCompraScreen");
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                PrecioCompraScreen(tipoProducto: 'Producto nuevo'),
-          ),
-        ).then((precio) {
-          if (precio != null) {
-            print('Precio ingresado: €$precio');
-          }
-        });
-      }
-    });
+    bar = Bar('0000000000030'); // Inicializamos aquí
   }
 
   @override
@@ -66,33 +42,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       final alimento = await service.obtenerProducto(bar);
 
                       if (alimento == null) {
-                        // Mostrar popup de error
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text("Código no encontrado"),
-                              content: const Text(
-                                "El código de barras leído no ha sido encontrado.",
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(
-                                      context,
-                                    ).pop(); // Cerrar el popup
-                                    // Usar la función separada para evitar problemas de contexto
-                                    WidgetsBinding.instance
-                                        .addPostFrameCallback((_) {
-                                          _crearProductoYPrecio(context);
-                                        });
-                                  },
-                                  child: const Text("Aceptar"),
-                                ),
-                              ],
-                            );
-                          },
+                        // Directamente navegar a la pantalla de formulario
+                        final precio = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NewProductScreen(bar: bar),
+                          ),
                         );
+
+                        if (precio != null) {
+                          print('Precio ingresado: €$precio');
+                        }
                       } else {
                         // Directamente pedir el precio del producto encontrado
                         final precio = await Navigator.push(
@@ -145,29 +105,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          final precio = await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => NewProductScreen(bar: bar),
                             ),
-                          ).then((result) async {
-                            if (result != null) {
-                              // Solo si se creó un producto
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PrecioCompraScreen(
-                                    tipoProducto: 'Producto nuevo',
-                                  ),
-                                ),
-                              ).then((precio) {
-                                if (precio != null) {
-                                  print('Precio ingresado: €$precio');
-                                }
-                              });
-                            }
-                          });
+                          );
+
+                          if (precio != null) {
+                            print('Precio ingresado: €$precio');
+                          }
                         },
                         icon: const Icon(Icons.add),
                         label: const Text('Nuevo'),

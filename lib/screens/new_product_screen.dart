@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/alimento.dart';
 import '../models/bar.dart';
 import '../database/database_helper.dart';
+import 'precio_compra_screen.dart'; // Importamos la pantalla de precios
 
 class NewProductScreen extends StatefulWidget {
   final Bar? bar; // Recibe opcionalmente el código de barras no encontrado
@@ -107,8 +108,24 @@ class _NewProductScreenState extends State<NewProductScreen> {
                         ),
                       );
 
-                      // Volver a la pantalla anterior
-                      Navigator.pop(context, true);
+                      // Navegar a la pantalla de precios
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PrecioCompraScreen(
+                            tipoProducto: _tipo ?? 'Producto nuevo',
+                          ),
+                        ),
+                      ).then((precio) {
+                        if (precio != null) {
+                          // Volver a la pantalla anterior con el precio
+                          Navigator.pop(context, precio);
+                        } else {
+                          // Si no se ingresó precio, volver normalmente
+                          Navigator.pop(context);
+                        }
+                      });
+
                     } catch (e) {
                       // Mostrar mensaje de error
                       ScaffoldMessenger.of(context).showSnackBar(

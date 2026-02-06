@@ -1,7 +1,8 @@
 class Bar {
   final String ean13;
 
-  Bar(this.ean13) : assert(ean13.length == 14, 'El código debe tener 14 caracteres');
+  Bar(this.ean13)
+    : assert(ean13.length == 13, 'El código debe tener 13 caracteres');
 
   @override
   String toString() => ean13;
@@ -14,5 +15,5 @@ class Bar {
   @override
   int get hashCode => ean13.hashCode;
 
-  get codigo => null;
+  String get codigo => ean13;
 }

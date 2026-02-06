@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import '../models/alimento.dart';
 import '../models/bar.dart';
@@ -79,7 +81,6 @@ class _NewProductScreenState extends State<NewProductScreen> {
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
-
                     // Creamos el objeto Alimento
                     final alimento = Alimento(
                       tipo: _tipo!,
@@ -87,7 +88,9 @@ class _NewProductScreenState extends State<NewProductScreen> {
                       cantidad: _cantidad ?? 0.0,
                       bar:
                           widget.bar ??
-                          Bar(''), // Usamos el código de barras recibido
+                          Bar(
+                            '0000000000000',
+                          ), // Usamos el código de barras recibido
                     );
 
                     // Guardamos en la base de datos

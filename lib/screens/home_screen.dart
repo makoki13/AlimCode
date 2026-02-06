@@ -12,13 +12,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Bar bar = Bar(''); // Variable compartida
+  late Bar bar = Bar('0000000000000'); // Variable compartida
+
+  @override
+  void initState() {
+    super.initState();
+    bar = Bar('0000000000000'); // Inicializamos aquí
+  }
 
   @override
   Widget build(BuildContext context) {
     // Código de barras simulado
-    final codigo = "00000000000000";
-    bar = Bar(codigo); // Asignamos el valor aquí
+    //final codigo = "00000000000000";
+    //bar = Bar(codigo); // Asignamos el valor aquí
 
     return Scaffold(
       body: SafeArea(
@@ -38,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (!encontrado) {
                         // Mostrar popup de error
                         showDialog(
+                          // ignore: use_build_context_synchronously
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
@@ -48,12 +55,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               actions: [
                                 TextButton(
                                   onPressed: () {
-                                    Navigator.of(context).pop(); // Cerrar el popup
+                                    Navigator.of(
+                                      context,
+                                    ).pop(); // Cerrar el popup
                                     // Navegar a la pantalla de formulario
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => NewProductScreen(bar: bar),
+                                        builder: (context) =>
+                                            NewProductScreen(bar: bar),
                                       ),
                                     );
                                   },
@@ -112,7 +122,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => NewProductScreen(bar: bar), // ✅ Comparte la misma variable
+                              builder: (context) => NewProductScreen(
+                                bar: bar,
+                              ), // ✅ Comparte la misma variable
                             ),
                           );
                         },

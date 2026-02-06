@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'screens/init_screen.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   runApp(const MyApp());
 }
@@ -13,9 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'AlimCode',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-      ),
+      theme: ThemeData(primarySwatch: Colors.green),
       home: const InitScreen(), // Eliminamos initialRoute y routes
     );
   }

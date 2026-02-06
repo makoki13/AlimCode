@@ -25,6 +25,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Código de barras simulado
+    //final codigo = "00000000000000";
+    //bar = Bar(codigo); // Asignamos el valor aquí
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -69,16 +73,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                       final precio = await Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) =>
-                                              PrecioCompraScreen(
-                                                tipoProducto: 'Producto nuevo',
-                                              ),
+                                          builder: (context) => PrecioCompraScreen(
+                                            tipoProducto: 'Producto sin nombre', // Puedes actualizarlo
+                                          ),
                                         ),
                                       );
-                                      // Mostrar precio en consola
-                                      if (precio != null) {
-                                        print('Precio ingresado: €$precio');
-                                      }
+                                      // Aquí terminamos, sin mostrar diálogo adicional
                                     });
                                   },
                                   child: const Text("Aceptar"),
@@ -88,18 +88,41 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         );
                       } else {
-                        // Directamente pedir el precio del producto encontrado
-                        final precio = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                PrecioCompraScreen(tipoProducto: alimento.tipo),
-                          ),
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text("Producto encontrado"),
+                              content: Text(
+                                "Tipo: ${alimento.tipo}\n"
+                                "Preparación: ${alimento.preparacion}\n"
+                                "Cantidad: ${alimento.cantidad}",
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(
+                                      context,
+                                    ).pop(); // Cerrar el popup
+                                    
+                                    // Pedir el precio del producto encontrado
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => PrecioCompraScreen(
+                                          tipoProducto: alimento.tipo,
+                                        ),
+                                      ),
+                                    ).then((precio) async {
+                                      // Aquí terminamos, sin mostrar diálogo adicional
+                                    });
+                                  },
+                                  child: const Text("Aceptar"),
+                                ),
+                              ],
+                            );
+                          },
                         );
-                        // Mostrar precio en consola
-                        if (precio != null) {
-                          print('Precio ingresado: €$precio');
-                        }
                       }
                     },
                     child: Container(
@@ -109,8 +132,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: Image.asset(
                         'assets/images/barcode_icon.png', // Asegúrate de tener esta imagen
-                        width: MediaQuery.of(context).size.width / 2,
-                        height: MediaQuery.of(context).size.width / 2,
+                        width:
+                            MediaQuery.of(context).size.width /
+                            2, // Ocupa la mitad del ancho de la pantalla
+                        height:
+                            MediaQuery.of(context).size.width /
+                            2, // Proporcional si es cuadrada
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -143,7 +170,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => NewProductScreen(bar: bar),
+                              builder: (context) => NewProductScreen(
+                                bar: bar,
+                              ), // ✅ Comparte la misma variable
                             ),
                           ).then((_) async {
                             // Después de crear el producto, pedir el precio
@@ -151,14 +180,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => PrecioCompraScreen(
-                                  tipoProducto: 'Producto nuevo',
+                                  tipoProducto: 'Producto sin nombre', // Puedes actualizarlo
                                 ),
                               ),
                             );
-                            // Mostrar precio en consola
-                            if (precio != null) {
-                              print('Precio ingresado: €$precio');
-                            }
+                            // Aquí terminamos, sin mostrar diálogo adicional
                           });
                         },
                         icon: const Icon(Icons.add),

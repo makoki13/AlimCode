@@ -108,7 +108,7 @@ class _NewProductScreenState extends State<NewProductScreen> {
                       );
 
                       // Volver a la pantalla anterior
-                      Navigator.pop(context);
+                      Navigator.pop(context, true);
                     } catch (e) {
                       // Mostrar mensaje de error
                       ScaffoldMessenger.of(context).showSnackBar(

@@ -70,11 +70,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                     ).then((_) async {
                                       // Después de crear el producto, pedir el precio
+                                      // ignore: unused_local_variable
                                       final precio = await Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => PrecioCompraScreen(
-                                            tipoProducto: 'Producto sin nombre', // Puedes actualizarlo
+                                            tipoProducto:
+                                                'Producto sin nombre', // Puedes actualizarlo
                                           ),
                                         ),
                                       );
@@ -104,14 +106,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Navigator.of(
                                       context,
                                     ).pop(); // Cerrar el popup
-                                    
+
                                     // Pedir el precio del producto encontrado
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => PrecioCompraScreen(
-                                          tipoProducto: alimento.tipo,
-                                        ),
+                                        builder: (context) =>
+                                            PrecioCompraScreen(
+                                              tipoProducto: alimento.tipo,
+                                            ),
                                       ),
                                     ).then((precio) async {
                                       // Aquí terminamos, sin mostrar diálogo adicional
@@ -180,7 +183,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (context) => PrecioCompraScreen(
-                                  tipoProducto: 'Producto sin nombre', // Puedes actualizarlo
+                                  tipoProducto:
+                                      'Producto sin nombre', // Puedes actualizarlo
                                 ),
                               ),
                             );

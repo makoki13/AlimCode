@@ -34,13 +34,6 @@ class DatabaseHelper {
   }
 
   Future<int> insertAlimento(Alimento alimento) async {
-    /* print('Insertando alimento:');
-    print('Tipo: ${alimento.tipo}');
-    print('Preparación: ${alimento.preparacion}');
-    print('Cantidad: ${alimento.cantidad}');
-    print(
-      'Código de barras: "${alimento.bar.codigo}"',
-    ); */ // ← Agrega comillas para ver si es vacío
     final db = await database;
     return await db.insert('alimentos', {
       'tipo': alimento.tipo,

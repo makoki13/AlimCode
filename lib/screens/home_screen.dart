@@ -20,7 +20,31 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    bar = Bar('0000000000001'); // Inicializamos aquí
+    bar = Bar('0000000000019'); // Inicializamos aquí
+  }
+
+  // Función separada para manejar la navegación después de cerrar el diálogo
+  void _crearProductoYPrecio(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => NewProductScreen(bar: bar)),
+    ).then((result) async {
+      if (result != null) {
+        // Solo si se creó un producto
+        print("DEBUG: Entramos en PrecioCompraScreen");
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                PrecioCompraScreen(tipoProducto: 'Producto nuevo'),
+          ),
+        ).then((precio) {
+          if (precio != null) {
+            print('Precio ingresado: €$precio');
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -57,29 +81,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Navigator.of(
                                       context,
                                     ).pop(); // Cerrar el popup
-                                    // Navegar a la pantalla de formulario
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            NewProductScreen(bar: bar),
-                                      ),
-                                    ).then((_) async {
-                                      // Después de crear el producto, pedir el precio
-                                      final precio = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              PrecioCompraScreen(
-                                                tipoProducto: 'Producto nuevo',
-                                              ),
-                                        ),
-                                      );
-                                      // Mostrar precio en consola
-                                      if (precio != null) {
-                                        print('Precio ingresado: €$precio');
-                                      }
-                                    });
+                                    // Usar la función separada para evitar problemas de contexto
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                          _crearProductoYPrecio(context);
+                                        });
                                   },
                                   child: const Text("Aceptar"),
                                 ),
@@ -145,19 +151,21 @@ class _HomeScreenState extends State<HomeScreen> {
                             MaterialPageRoute(
                               builder: (context) => NewProductScreen(bar: bar),
                             ),
-                          ).then((_) async {
-                            // Después de crear el producto, pedir el precio
-                            final precio = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PrecioCompraScreen(
-                                  tipoProducto: 'Producto nuevo',
+                          ).then((result) async {
+                            if (result != null) {
+                              // Solo si se creó un producto
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PrecioCompraScreen(
+                                    tipoProducto: 'Producto nuevo',
+                                  ),
                                 ),
-                              ),
-                            );
-                            // Mostrar precio en consola
-                            if (precio != null) {
-                              print('Precio ingresado: €$precio');
+                              ).then((precio) {
+                                if (precio != null) {
+                                  print('Precio ingresado: €$precio');
+                                }
+                              });
                             }
                           });
                         },

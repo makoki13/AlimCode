@@ -1,7 +1,9 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:alimcode/screens/list_alimentos_screen.dart';
+import 'package:alimcode/services/local_service.dart';
 import 'package:flutter/material.dart';
 import 'new_product_screen.dart';
-import '../services/bar_items.dart';
 import '../models/bar.dart'; // Asegúrate de importar Bar
 
 class HomeScreen extends StatefulWidget {
@@ -12,12 +14,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Bar bar = Bar('0000000000000'); // Variable compartida
+  late Bar bar = Bar('0000000000002'); // Variable compartida
 
   @override
   void initState() {
     super.initState();
-    bar = Bar('0000000000000'); // Inicializamos aquí
+    bar = Bar('0000000000002'); // Inicializamos aquí
   }
 
   @override
@@ -39,12 +41,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Center(
                   child: GestureDetector(
                     onTap: () async {
-                      bool encontrado = await BarItems.existeBar(bar);
+                      final service = SQLiteLocalService();
+                      final alimento = await service.obtenerProducto(bar);
 
-                      if (!encontrado) {
+                      if (alimento == null) {
                         // Mostrar popup de error
                         showDialog(
-                          // ignore: use_build_context_synchronously
                           context: context,
                           builder: (BuildContext context) {
                             return AlertDialog(
@@ -74,7 +76,29 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         );
                       } else {
-                        // Aquí puedes agregar la lógica para el caso en que sí se encuentre
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text("Producto encontrado"),
+                              content: Text(
+                                "Tipo: ${alimento.tipo}\n"
+                                "Preparación: ${alimento.preparacion}\n"
+                                "Cantidad: ${alimento.cantidad}",
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(
+                                      context,
+                                    ).pop(); // Cerrar el popup
+                                  },
+                                  child: const Text("Aceptar"),
+                                ),
+                              ],
+                            );
+                          },
+                        );
                       }
                     },
                     child: Container(

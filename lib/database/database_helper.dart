@@ -73,4 +73,23 @@ class DatabaseHelper {
     );
     return result.isNotEmpty;
   }
+
+  // Método para obtener alimentos por código de barras
+  Future<List<Alimento>> getAlimentosPorCodigo(String codigo) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'alimentos',
+      where: 'codigo_barras = ?',
+      whereArgs: [codigo],
+    );
+
+    return List.generate(maps.length, (i) {
+      return Alimento(
+        tipo: maps[i]['tipo'],
+        preparacion: maps[i]['preparacion'],
+        cantidad: maps[i]['cantidad'],
+        bar: Bar(maps[i]['codigo_barras']),
+      );
+    });
+  }
 }

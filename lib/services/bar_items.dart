@@ -1,16 +1,13 @@
 import '../models/alimento.dart';
-import '../models/bar.dart';
-import 'local_service.dart';
-import 'remote_service.dart';
 
 class BarItems {
-  static final LocalService _localService = MockLocalService();
-  static final RemoteService _remoteService = OpenFoodFactsService();
+  //static final LocalService _localService = SQLiteLocalService();
+  //static final RemoteService _remoteService = OpenFoodFactsService();
 
   /// Devuelve `true` si el código de barras existe en la base de datos local, `false` en caso contrario.
-  static Future<bool> existeBar(Bar bar) async {
+  /* static Future<bool> existeBar(Bar bar) async {
     // Paso 1: Verificar en la base de datos local
-    if (await _localService.existeProducto(bar)) {
+    if (await _localService.obtenerProducto(bar)) {
       return true;
     }
 
@@ -24,7 +21,7 @@ class BarItems {
 
     // Paso 3: Si no se encuentra en ninguno, devolver false
     return false;
-  }
+  } */
 
   /// Añade un alimento a la base de datos local.
   /// Devuelve `true` si la operación fue exitosa, `false` en caso contrario.

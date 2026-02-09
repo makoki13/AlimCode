@@ -43,6 +43,13 @@ class DatabaseHelper {
     });
   }
 
+  // En database_helper.dart
+  // En database_helper.dart
+  Future<int> deleteAlimentoByTipo(String tipo) async {
+    final db = await database;
+    return await db.delete('alimentos', where: 'tipo = ?', whereArgs: [tipo]);
+  }
+
   Future<List<Alimento>> getAlimentos() async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query('alimentos');

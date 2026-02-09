@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import '../database/database_helper.dart';
 import '../models/alimento.dart';
+import '../screens/historial_compras_screen.dart';
 
 class ListAlimentosScreen extends StatefulWidget {
   const ListAlimentosScreen({super.key});
@@ -18,7 +19,14 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
   @override
   void initState() {
     super.initState();
-    _cargarAlimentos();
+    _alimentosFuture = DatabaseHelper().getAlimentos();
+
+    // Escuchar cambios en el campo de búsqueda para reconstruir la UI
+    _searchController.addListener(() {
+      setState(() {
+        // Solo forzamos reconstrucción; el filtrado se hace en el builder
+      });
+    });
   }
 
   @override
@@ -27,10 +35,18 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
     super.dispose();
   }
 
-  void _cargarAlimentos() {
-    setState(() {
-      _alimentosFuture = DatabaseHelper().getAlimentos();
-    });
+  List<Alimento> _filtrarAlimentos(List<Alimento> alimentos, String query) {
+    if (query.isEmpty) return alimentos;
+
+    final queryLower = query.toLowerCase().trim();
+    return alimentos.where((alimento) {
+      return alimento.tipo.toLowerCase().contains(queryLower);
+    }).toList();
+  }
+
+  void _limpiarBusqueda() {
+    _searchController.clear();
+    // setState() se llama automáticamente gracias al listener del controlador
   }
 
   @override
@@ -56,8 +72,15 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Buscar alimento...',
+                      hintText: 'Buscar por nombre...',
                       prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: _limpiarBusqueda,
+                              tooltip: 'Limpiar búsqueda',
+                            )
+                          : null,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8.0),
                       ),
@@ -67,7 +90,8 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                 const SizedBox(width: 12.0),
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Lógica de búsqueda se implementará después
+                    // Forzar reconstrucción para aplicar el filtro actual
+                    setState(() {});
                   },
                   icon: const Icon(Icons.search),
                   label: const Text('Buscar'),
@@ -87,104 +111,140 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
             child: FutureBuilder<List<Alimento>>(
               future: _alimentosFuture,
               builder: (context, snapshot) {
+                // ¡IMPORTANTE: NUNCA llamar a setState() aquí dentro!
+
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
-                } else {
-                  final alimentos = snapshot.data ?? [];
-                  if (alimentos.isEmpty) {
-                    return const Center(
-                      child: Text('No hay alimentos guardados.'),
-                    );
-                  }
-                  return ListView.builder(
-                    itemCount: alimentos.length,
-                    itemBuilder: (context, index) {
-                      final alimento = alimentos[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 8.0,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Título del alimento
-                              Text(
-                                alimento.tipo,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              // Subtítulo con preparación y cantidad (formato original)
-                              Text(
-                                '${alimento.preparacion}\n${alimento.cantidad}',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Línea separadora sutil antes de los iconos
-                              const Divider(height: 1, thickness: 0.5),
-                              const SizedBox(height: 8),
-                              // Iconos en su propia línea, alineados a la derecha
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.receipt_outlined,
-                                      size: 22,
-                                    ),
-                                    onPressed: () {
-                                      _mostrarHistorialCompras(
-                                        context,
-                                        alimento,
-                                      );
-                                    },
-                                    tooltip: 'Ver compras realizadas',
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.edit_outlined,
-                                      size: 22,
-                                    ),
-                                    onPressed: () {
-                                      _editarAlimento(context, alimento);
-                                    },
-                                    tooltip: 'Editar alimento',
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.delete_outlined,
-                                      size: 22,
-                                      color: Colors.red,
-                                    ),
-                                    onPressed: () {
-                                      _eliminarAlimento(context, alimento);
-                                    },
-                                    tooltip: 'Eliminar alimento',
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                } else if (snapshot.data == null || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text('No hay alimentos guardados.'),
                   );
                 }
+
+                // Filtrar DIRECTAMENTE sobre snapshot.data (sin cache ni setState)
+                final alimentosFiltrados = _filtrarAlimentos(
+                  snapshot.data!,
+                  _searchController.text,
+                );
+
+                if (alimentosFiltrados.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _searchController.text.isNotEmpty
+                              ? 'No se encontraron alimentos con el nombre "${_searchController.text}"'
+                              : 'No hay alimentos guardados.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        if (_searchController.text.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _limpiarBusqueda,
+                            child: const Text('Ver todos los alimentos'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: alimentosFiltrados.length,
+                  itemBuilder: (context, index) {
+                    final alimento = alimentosFiltrados[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Título del alimento
+                            Text(
+                              alimento.tipo,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            // Subtítulo con preparación y cantidad
+                            Text(
+                              '${alimento.preparacion}\n${alimento.cantidad}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            // Línea separadora sutil antes de los iconos
+                            const Divider(height: 1, thickness: 0.5),
+                            const SizedBox(height: 8),
+                            // Iconos en su propia línea, alineados a la derecha
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.receipt_outlined,
+                                    size: 22,
+                                  ),
+                                  onPressed: () {
+                                    _mostrarHistorialCompras(context, alimento);
+                                  },
+                                  tooltip: 'Ver compras realizadas',
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 22,
+                                  ),
+                                  onPressed: () {
+                                    _editarAlimento(context, alimento);
+                                  },
+                                  tooltip: 'Editar alimento',
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outlined,
+                                    size: 22,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () {
+                                    _eliminarAlimento(context, alimento);
+                                  },
+                                  tooltip: 'Eliminar alimento',
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
               },
             ),
           ),
@@ -194,9 +254,11 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
   }
 
   void _mostrarHistorialCompras(BuildContext context, Alimento alimento) {
-    // TODO: Implementar navegación a pantalla de historial de compras
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Historial de compras de: ${alimento.tipo}')),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HistorialComprasScreen(alimento: alimento),
+      ),
     );
   }
 
@@ -234,8 +296,10 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
         // Eliminar de la base de datos
         await DatabaseHelper().deleteAlimentoByTipo(alimento.tipo);
 
-        // Refrescar la lista
-        _cargarAlimentos();
+        // Refrescar la lista completa
+        setState(() {
+          _alimentosFuture = DatabaseHelper().getAlimentos();
+        });
 
         // Feedback de éxito
         ScaffoldMessenger.of(context).showSnackBar(

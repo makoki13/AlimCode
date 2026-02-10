@@ -190,4 +190,52 @@ class DatabaseHelper {
       whereArgs: [compra.id],
     );
   }
+
+  // En lib/database/database_helper.dart, dentro de la clase DatabaseHelper
+
+  Future<int> updateAlimento(
+    String tipoAntiguo,
+    Alimento alimentoActualizado,
+  ) async {
+    final db = await database;
+
+    // Verificar si el nuevo tipo ya existe para otro alimento
+    if (tipoAntiguo != alimentoActualizado.tipo) {
+      final existe = await db.query(
+        'alimentos',
+        where: 'tipo = ?',
+        whereArgs: [alimentoActualizado.tipo],
+      );
+      if (existe.isNotEmpty) {
+        throw Exception(
+          'Ya existe un alimento con el nombre "${alimentoActualizado.tipo}"',
+        );
+      }
+    }
+
+    // Actualizar el alimento
+    final rowsAffected = await db.update(
+      'alimentos',
+      {
+        'tipo': alimentoActualizado.tipo,
+        'preparacion': alimentoActualizado.preparacion,
+        'cantidad': alimentoActualizado.cantidad,
+        'codigo_barras': alimentoActualizado.bar.codigo,
+      },
+      where: 'tipo = ?',
+      whereArgs: [tipoAntiguo],
+    );
+
+    // Si el tipo cambió, actualizar también las compras asociadas
+    if (tipoAntiguo != alimentoActualizado.tipo) {
+      await db.update(
+        'compras',
+        {'tipo_alimento': alimentoActualizado.tipo},
+        where: 'tipo_alimento = ?',
+        whereArgs: [tipoAntiguo],
+      );
+    }
+
+    return rowsAffected;
+  }
 }

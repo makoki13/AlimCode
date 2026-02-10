@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/alimento.dart';
 import '../models/compra.dart';
 import '../database/database_helper.dart';
+import '../screens/precio_compra_screen.dart'; // ← Import necesario
 
 class HistorialComprasScreen extends StatefulWidget {
   final Alimento alimento;
@@ -41,15 +42,6 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
           },
         ),
         title: Text('Compras de ${widget.alimento.tipo}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Añadir nueva compra',
-            onPressed: () {
-              _nuevaCompra(context);
-            },
-          ),
-        ],
       ),
       body: FutureBuilder<List<Compra>>(
         future: _comprasFuture,
@@ -84,9 +76,7 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
                     ),
                     const SizedBox(height: 30),
                     ElevatedButton.icon(
-                      onPressed: () {
-                        _nuevaCompra(context);
-                      },
+                      onPressed: _nuevaCompra,
                       icon: const Icon(Icons.add),
                       label: const Text('Registrar primera compra'),
                     ),
@@ -105,12 +95,6 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
           }
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _nuevaCompra(context);
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
@@ -122,7 +106,7 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Fecha y establecimiento
+            // Fecha
             Row(
               children: [
                 Icon(Icons.calendar_today, size: 16, color: Colors.grey),
@@ -134,7 +118,7 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            // Precio y cantidad
+            // Precio
             Row(
               children: [
                 Text(
@@ -193,12 +177,19 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
     }
   }
 
-  void _nuevaCompra(BuildContext context) {
-    // TODO: Navegar a pantalla para registrar nueva compra
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Registrar nueva compra de ${widget.alimento.tipo}'),
+  void _nuevaCompra() async {
+    // Abrir pantalla para introducir precio
+    final resultado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            PrecioCompraScreen(tipoProducto: widget.alimento.tipo),
       ),
     );
+
+    // Si la compra se registró correctamente (resultado == true), recargar el historial
+    if (resultado == true) {
+      _cargarCompras();
+    }
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../database/database_helper.dart';
 import '../models/alimento.dart';
 import '../screens/historial_compras_screen.dart';
+import '../screens/editar_alimento_screen.dart';
 
 class ListAlimentosScreen extends StatefulWidget {
   const ListAlimentosScreen({super.key});
@@ -262,11 +263,18 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
     );
   }
 
-  void _editarAlimento(BuildContext context, Alimento alimento) {
-    // TODO: Implementar navegación a pantalla de edición
-    ScaffoldMessenger.of(
+  void _editarAlimento(BuildContext context, Alimento alimento) async {
+    final resultado = await Navigator.push<bool>(
       context,
-    ).showSnackBar(SnackBar(content: Text('Editar: ${alimento.tipo}')));
+      MaterialPageRoute(
+        builder: (context) => EditarAlimentoScreen(alimento: alimento),
+      ),
+    );
+
+    // Si se guardaron cambios con éxito, recargar la lista
+    if (resultado == true) {
+      _cargarAlimentos();
+    }
   }
 
   void _eliminarAlimento(BuildContext context, Alimento alimento) async {
@@ -318,5 +326,11 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
         );
       }
     }
+  }
+
+  void _cargarAlimentos() {
+    setState(() {
+      _alimentosFuture = DatabaseHelper().getAlimentos();
+    });
   }
 }

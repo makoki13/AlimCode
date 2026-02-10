@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/alimento.dart';
 import '../models/compra.dart';
 import '../database/database_helper.dart';
-import '../screens/precio_compra_screen.dart'; // ← Import necesario
+import '../screens/precio_compra_screen.dart';
 
 class HistorialComprasScreen extends StatefulWidget {
   final Alimento alimento;
@@ -131,10 +131,37 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
                 ),
               ],
             ),
-            if (!esUltima) ...[
-              const SizedBox(height: 12),
-              const Divider(height: 1, thickness: 0.5),
-            ],
+            const SizedBox(height: 12),
+            // Botones de acción (modificar y eliminar)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 20,
+                    color: Colors.blue,
+                  ),
+                  onPressed: () {
+                    _modificarCompra(compra);
+                  },
+                  tooltip: 'Modificar compra',
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(
+                    Icons.delete_outlined,
+                    size: 20,
+                    color: Colors.red,
+                  ),
+                  onPressed: () {
+                    _eliminarCompra(compra);
+                  },
+                  tooltip: 'Eliminar compra',
+                ),
+              ],
+            ),
+            if (!esUltima) ...[const Divider(height: 1, thickness: 0.5)],
           ],
         ),
       ),
@@ -191,5 +218,27 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
     if (resultado == true) {
       _cargarCompras();
     }
+  }
+
+  void _modificarCompra(Compra compra) {
+    // TODO: Implementar funcionalidad de modificación
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Modificar compra de ${compra.precio.toStringAsFixed(2)} €',
+        ),
+      ),
+    );
+  }
+
+  void _eliminarCompra(Compra compra) {
+    // TODO: Implementar funcionalidad de eliminación
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Eliminar compra de ${compra.precio.toStringAsFixed(2)} €',
+        ),
+      ),
+    );
   }
 }

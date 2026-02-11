@@ -180,18 +180,17 @@ class DatabaseHelper {
     return List.generate(maps.length, (i) => Compra.fromMap(maps[i]));
   }
 
+  // En lib/database/database_helper.dart
   Future<int> updateCompra(Compra compra) async {
     final db = await database;
 
     return await db.update(
       'compras',
-      compra.toMap(),
+      compra.toMap(), // toMap() debe incluir el 'id' ya que es > 0
       where: 'id = ?',
       whereArgs: [compra.id],
     );
   }
-
-  // En lib/database/database_helper.dart, dentro de la clase DatabaseHelper
 
   Future<int> updateAlimento(
     String tipoAntiguo,

@@ -1,9 +1,12 @@
 // lib/screens/historial_compras_screen.dart
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import '../models/alimento.dart';
 import '../models/compra.dart';
 import '../database/database_helper.dart';
 import '../screens/precio_compra_screen.dart';
+import '../screens/editar_compra_screen.dart';
 
 class HistorialComprasScreen extends StatefulWidget {
   final Alimento alimento;
@@ -220,25 +223,73 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
     }
   }
 
-  void _modificarCompra(Compra compra) {
-    // TODO: Implementar funcionalidad de modificación
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Modificar compra de ${compra.precio.toStringAsFixed(2)} €',
-        ),
+  void _modificarCompra(Compra compra) async {
+    final resultado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditarCompraScreen(compra: compra),
       ),
     );
+
+    // Si se guardaron cambios con éxito, recargar el historial
+    if (resultado == true) {
+      _cargarCompras();
+    }
   }
 
-  void _eliminarCompra(Compra compra) {
-    // TODO: Implementar funcionalidad de eliminación
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+  // En lib/screens/historial_compras_screen.dart
+
+  void _eliminarCompra(Compra compra) async {
+    // Mostrar diálogo de confirmación
+    final confirmacion = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
         content: Text(
-          'Eliminar compra de ${compra.precio.toStringAsFixed(2)} €',
+          '¿Estás seguro de que quieres eliminar esta compra de ${compra.precio.toStringAsFixed(2)} €?\n\n'
+          'Esta acción no se puede deshacer.',
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
       ),
     );
+
+    // Si el usuario confirma la eliminación
+    if (confirmacion == true) {
+      try {
+        // Eliminar de la base de datos
+        await DatabaseHelper().deleteCompra(compra.id);
+
+        // Recargar el historial
+        _cargarCompras();
+
+        // Feedback de éxito
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ Compra de ${compra.precio.toStringAsFixed(2)} € eliminada',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        // Feedback de error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('❌ Error al eliminar la compra'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

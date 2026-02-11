@@ -97,7 +97,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               title: const Text("Producto encontrado"),
                               content: Text(
                                 "Tipo: ${alimento.tipo}\n"
-                                "Preparación: ${alimento.preparacion}\n"
                                 "Cantidad: ${alimento.cantidad}",
                               ),
                               actions: [

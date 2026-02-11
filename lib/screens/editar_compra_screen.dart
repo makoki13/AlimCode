@@ -1,13 +1,8 @@
 // lib/screens/editar_compra_screen.dart
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
-
-// Formateador de fechas (requiere intl)
-import 'package:intl/intl.dart';
-
 import '../models/compra.dart';
 import '../database/database_helper.dart';
+import 'package:intl/intl.dart';
 
 class EditarCompraScreen extends StatefulWidget {
   final Compra compra;
@@ -54,7 +49,7 @@ class _EditarCompraScreenState extends State<EditarCompraScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Información de la compra original
+              // Información del producto original
               Text(
                 'Producto: ${widget.compra.tipoAlimento}',
                 style: const TextStyle(
@@ -65,7 +60,10 @@ class _EditarCompraScreenState extends State<EditarCompraScreen> {
               const SizedBox(height: 8),
               Text(
                 'Fecha: ${_formatearFecha(widget.compra.fecha)}',
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -107,11 +105,9 @@ class _EditarCompraScreenState extends State<EditarCompraScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () {
-                              Navigator.pop(context, false); // Cancelar
-                            },
+                      onPressed: _isLoading ? null : () {
+                        Navigator.pop(context, false); // Cancelar
+                      },
                       child: const Text('Cancelar'),
                     ),
                   ),
@@ -162,15 +158,14 @@ class _EditarCompraScreenState extends State<EditarCompraScreen> {
       // Feedback de éxito
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            '✅ Precio actualizado a ${nuevoPrecio.toStringAsFixed(2)} €',
-          ),
+          content: Text('✅ Precio actualizado a ${nuevoPrecio.toStringAsFixed(2)} €'),
           backgroundColor: Colors.green,
         ),
       );
 
       // Volver indicando éxito
       Navigator.pop(context, true);
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

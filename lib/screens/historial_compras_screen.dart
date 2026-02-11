@@ -1,12 +1,9 @@
 // lib/screens/historial_compras_screen.dart
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import '../models/alimento.dart';
 import '../models/compra.dart';
 import '../database/database_helper.dart';
 import '../screens/precio_compra_screen.dart';
-import '../screens/editar_compra_screen.dart';
 
 class HistorialComprasScreen extends StatefulWidget {
   final Alimento alimento;
@@ -77,6 +74,12 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.grey),
                     ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '${widget.alimento.marca} ${widget.alimento.modelo}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                    ),
                     const SizedBox(height: 30),
                     ElevatedButton.icon(
                       onPressed: _nuevaCompra,
@@ -109,7 +112,23 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Fecha
+            // Información del producto
+            Text(
+              '${widget.alimento.tipo}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            Text(
+              '${widget.alimento.marca} ${widget.alimento.modelo}',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Fecha y cantidad del producto
             Row(
               children: [
                 Icon(Icons.calendar_today, size: 16, color: Colors.grey),
@@ -117,6 +136,14 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
                 Text(
                   _formatearFecha(compra.fecha),
                   style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  '${widget.alimento.cantidad} ${widget.alimento.medida}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
                 ),
               ],
             ),
@@ -164,7 +191,9 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
                 ),
               ],
             ),
-            if (!esUltima) ...[const Divider(height: 1, thickness: 0.5)],
+            if (!esUltima) ...[
+              const Divider(height: 1, thickness: 0.5),
+            ],
           ],
         ),
       ),
@@ -212,11 +241,12 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
     final resultado = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            PrecioCompraScreen(tipoProducto: widget.alimento.tipo),
+        builder: (context) => PrecioCompraScreen(
+          tipoProducto: widget.alimento.tipo,
+        ),
       ),
     );
-
+    
     // Si la compra se registró correctamente (resultado == true), recargar el historial
     if (resultado == true) {
       _cargarCompras();
@@ -224,72 +254,16 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
   }
 
   void _modificarCompra(Compra compra) async {
-    final resultado = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditarCompraScreen(compra: compra),
-      ),
+    // TODO: Implementar funcionalidad de modificación
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Modificar compra de ${compra.precio.toStringAsFixed(2)} €')),
     );
-
-    // Si se guardaron cambios con éxito, recargar el historial
-    if (resultado == true) {
-      _cargarCompras();
-    }
   }
 
-  // En lib/screens/historial_compras_screen.dart
-
-  void _eliminarCompra(Compra compra) async {
-    // Mostrar diálogo de confirmación
-    final confirmacion = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Text(
-          '¿Estás seguro de que quieres eliminar esta compra de ${compra.precio.toStringAsFixed(2)} €?\n\n'
-          'Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+  void _eliminarCompra(Compra compra) {
+    // TODO: Implementar funcionalidad de eliminación
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Eliminar compra de ${compra.precio.toStringAsFixed(2)} €')),
     );
-
-    // Si el usuario confirma la eliminación
-    if (confirmacion == true) {
-      try {
-        // Eliminar de la base de datos
-        await DatabaseHelper().deleteCompra(compra.id);
-
-        // Recargar el historial
-        _cargarCompras();
-
-        // Feedback de éxito
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '✅ Compra de ${compra.precio.toStringAsFixed(2)} € eliminada',
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } catch (e) {
-        // Feedback de error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('❌ Error al eliminar la compra'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 }

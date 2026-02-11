@@ -1,8 +1,7 @@
 // lib/screens/editar_alimento_screen.dart
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import '../models/alimento.dart';
+import '../models/bar.dart';
 import '../database/database_helper.dart';
 
 class EditarAlimentoScreen extends StatefulWidget {
@@ -17,27 +16,32 @@ class EditarAlimentoScreen extends StatefulWidget {
 class _EditarAlimentoScreenState extends State<EditarAlimentoScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _tipoController;
-  late TextEditingController _preparacionController;
+  late TextEditingController _marcaController;
+  late TextEditingController _modeloController;
   late TextEditingController _cantidadController;
+  late TextEditingController _medidaController;
+  late TextEditingController _codigoBarrasController;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _tipoController = TextEditingController(text: widget.alimento.tipo);
-    _preparacionController = TextEditingController(
-      text: widget.alimento.preparacion,
-    );
-    _cantidadController = TextEditingController(
-      text: widget.alimento.cantidad.toString(),
-    );
+    _marcaController = TextEditingController(text: widget.alimento.marca);
+    _modeloController = TextEditingController(text: widget.alimento.modelo);
+    _cantidadController = TextEditingController(text: widget.alimento.cantidad.toString());
+    _medidaController = TextEditingController(text: widget.alimento.medida);
+    _codigoBarrasController = TextEditingController(text: widget.alimento.bar.codigo);
   }
 
   @override
   void dispose() {
     _tipoController.dispose();
-    _preparacionController.dispose();
+    _marcaController.dispose();
+    _modeloController.dispose();
     _cantidadController.dispose();
+    _medidaController.dispose();
+    _codigoBarrasController.dispose();
     super.dispose();
   }
 
@@ -75,13 +79,30 @@ class _EditarAlimentoScreenState extends State<EditarAlimentoScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Preparación
+              // Marca
               TextFormField(
-                controller: _preparacionController,
+                controller: _marcaController,
                 enabled: !_isLoading,
                 decoration: const InputDecoration(
-                  labelText: 'Preparación',
-                  helperText: 'Ej: Fresco, Congelado, Cocido...',
+                  labelText: 'Marca *',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'La marca es obligatoria';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Modelo
+              TextFormField(
+                controller: _modeloController,
+                enabled: !_isLoading,
+                decoration: const InputDecoration(
+                  labelText: 'Modelo/Variante',
+                  helperText: 'Ej: Natural, Integral, Light...',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -94,7 +115,7 @@ class _EditarAlimentoScreenState extends State<EditarAlimentoScreen> {
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
                   labelText: 'Cantidad *',
-                  helperText: 'Ej: 1000 (gramos/ml)',
+                  helperText: 'Ej: 500',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
@@ -108,6 +129,41 @@ class _EditarAlimentoScreenState extends State<EditarAlimentoScreen> {
                   return null;
                 },
               ),
+              const SizedBox(height: 16),
+
+              // Medida
+              TextFormField(
+                controller: _medidaController,
+                enabled: !_isLoading,
+                decoration: const InputDecoration(
+                  labelText: 'Unidad de medida *',
+                  helperText: 'Ej: g, ml, unidades, kg...',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'La unidad de medida es obligatoria';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Código de barras
+              TextFormField(
+                controller: _codigoBarrasController,
+                enabled: !_isLoading,
+                decoration: const InputDecoration(
+                  labelText: 'Código de barras *',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'El código de barras es obligatorio';
+                  }
+                  return null;
+                },
+              ),
               const SizedBox(height: 24),
 
               // Botones de acción
@@ -115,9 +171,7 @@ class _EditarAlimentoScreenState extends State<EditarAlimentoScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () => Navigator.pop(context, false),
+                      onPressed: _isLoading ? null : () => Navigator.pop(context, false),
                       child: const Text('Cancelar'),
                     ),
                   ),
@@ -144,38 +198,59 @@ class _EditarAlimentoScreenState extends State<EditarAlimentoScreen> {
 
     // Obtener valores limpios
     final tipoNuevo = _tipoController.text.trim();
-    final preparacionNueva = _preparacionController.text.trim();
+    final marcaNueva = _marcaController.text.trim();
+    final modeloNuevo = _modeloController.text.trim();
     final cantidadNueva = double.parse(_cantidadController.text.trim());
+    final medidaNueva = _medidaController.text.trim();
+    final codigoNuevo = _codigoBarrasController.text.trim();
+
+    // Verificar si el código de barras ya existe para OTRO alimento
+    if (codigoNuevo != widget.alimento.bar.codigo) {
+      final existe = await DatabaseHelper().existeCodigoBarras(codigoNuevo);
+      if (existe) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ Este código de barras ya está registrado para otro alimento'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+    }
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Crear alimento actualizado (manteniendo el código de barras original)
+      // Crear alimento actualizado
       final alimentoActualizado = Alimento(
+        ID: widget.alimento.ID, // Mantener el ID original
         tipo: tipoNuevo,
-        preparacion: preparacionNueva,
+        marca: marcaNueva,
+        modelo: modeloNuevo,
         cantidad: cantidadNueva,
-        bar: widget.alimento.bar, // ← Mantener el código de barras original
+        medida: medidaNueva,
+        bar: Bar(codigoNuevo),
       );
 
       // Actualizar en base de datos
-      await DatabaseHelper().updateAlimento(
-        widget.alimento.tipo, // tipo antiguo (clave)
+      await DatabaseHelper().updateAlimentoById(
+        widget.alimento.ID, // usar ID para actualizar
         alimentoActualizado,
       );
 
       // Feedback de éxito
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ "$tipoNuevo" actualizado correctamente'),
+          content: Text('✅ "${tipoNuevo}" actualizado correctamente'),
           backgroundColor: Colors.green,
         ),
       );
 
       // Volver indicando éxito
       Navigator.pop(context, true);
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

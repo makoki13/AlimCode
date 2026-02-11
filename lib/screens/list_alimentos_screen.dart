@@ -5,7 +5,7 @@ import '../database/database_helper.dart';
 import '../models/alimento.dart';
 import '../screens/editar_alimento_screen.dart';
 import '../screens/historial_compras_screen.dart';
-import '../screens/precio_compra_screen.dart'; // ← Import necesario para el nuevo botón
+import '../screens/precio_compra_screen.dart';
 
 class ListAlimentosScreen extends StatefulWidget {
   const ListAlimentosScreen({super.key});
@@ -22,7 +22,7 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
   void initState() {
     super.initState();
     _alimentosFuture = DatabaseHelper().getAlimentos();
-    
+
     // Escuchar cambios en el campo de búsqueda para reconstruir la UI
     _searchController.addListener(() {
       setState(() {});
@@ -37,7 +37,7 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
 
   List<Alimento> _filtrarAlimentos(List<Alimento> alimentos, String query) {
     if (query.isEmpty) return alimentos;
-    
+
     final queryLower = query.toLowerCase().trim();
     return alimentos.where((alimento) {
       return alimento.tipo.toLowerCase().contains(queryLower);
@@ -77,7 +77,7 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Buscar por nombre...',
+                      hintText: 'Buscar por nombre, marca, modelo...',
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
@@ -135,14 +135,21 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                        const Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           _searchController.text.isNotEmpty
-                              ? 'No se encontraron alimentos con el nombre "${_searchController.text}"'
+                              ? 'No se encontraron alimentos con "${_searchController.text}"'
                               : 'No hay alimentos guardados.',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 16, color: Colors.grey),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
                         ),
                         if (_searchController.text.isNotEmpty) ...[
                           const SizedBox(height: 16),
@@ -171,7 +178,7 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Título del alimento
+                            // Título del alimento (tipo)
                             Text(
                               alimento.tipo,
                               style: const TextStyle(
@@ -180,14 +187,30 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            // Subtítulo con preparación y cantidad
+                            // Marca y modelo
                             Text(
-                              '${alimento.preparacion}\n${alimento.cantidad}',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                              '${alimento.marca} ${alimento.modelo}',
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            // Cantidad y medida
+                            Text(
+                              '${alimento.cantidad} ${alimento.medida}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            // Código de barras
+                            Text(
+                              'Cód: ${alimento.bar.codigo}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -268,12 +291,10 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
     final resultado = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => PrecioCompraScreen(
-          tipoProducto: alimento.tipo,
-        ),
+        builder: (context) => PrecioCompraScreen(tipoProducto: alimento.tipo),
       ),
     );
-    
+
     // Si la compra se registró correctamente, mostrar feedback
     if (resultado == true) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -301,7 +322,7 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
         builder: (context) => EditarAlimentoScreen(alimento: alimento),
       ),
     );
-    
+
     if (resultado == true) {
       _cargarAlimentos();
     }
@@ -332,11 +353,11 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
     if (confirmacion == true) {
       try {
         // Eliminar de la base de datos
-        await DatabaseHelper().deleteAlimentoByTipo(alimento.tipo);
+        await DatabaseHelper().deleteAlimentoById(alimento.ID);
 
         // Refrescar la lista completa
         _cargarAlimentos();
-        
+
         // Feedback de éxito
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

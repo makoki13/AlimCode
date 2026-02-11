@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../models/alimento.dart';
 import '../models/bar.dart';
 import '../database/database_helper.dart';
-import 'precio_compra_screen.dart'; // Importamos la pantalla de precios
 
 class NewProductScreen extends StatefulWidget {
   final Bar? bar; // Recibe opcionalmente el código de barras no encontrado
@@ -18,8 +17,10 @@ class NewProductScreen extends StatefulWidget {
 class _NewProductScreenState extends State<NewProductScreen> {
   final _formKey = GlobalKey<FormState>();
   String? _tipo;
-  String? _preparacion;
+  String? _marca;
+  String? _modelo;
   double? _cantidad;
+  String? _medida;
 
   @override
   Widget build(BuildContext context) {
@@ -54,27 +55,69 @@ class _NewProductScreenState extends State<NewProductScreen> {
                 onSaved: (value) => _tipo = value,
               ),
               const SizedBox(height: 16),
-              // Campo: Preparación (fresco, congelado, etc.)
+              // Campo: Marca
               TextFormField(
                 decoration: const InputDecoration(
-                  labelText: 'Preparación (ej: fresco, congelado, enlatado)',
+                  labelText: 'Marca *',
                   border: OutlineInputBorder(),
                 ),
-                onSaved: (value) => _preparacion = value,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa la marca';
+                  }
+                  return null;
+                },
+                onSaved: (value) => _marca = value,
               ),
               const SizedBox(height: 16),
-              // Campo: Cantidad en la unidad de compra
+              // Campo: Modelo (opcional)
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Modelo/Variante',
+                  hintText: 'Ej: Natural, Integral, Light...',
+                  border: const OutlineInputBorder(),
+                ),
+                onSaved: (value) => _modelo = value,
+              ),
+              const SizedBox(height: 16),
+              // Campo: Cantidad
               TextFormField(
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(
-                  labelText: 'Cantidad en la unidad de compra',
+                  labelText: 'Cantidad *',
                   border: OutlineInputBorder(),
                 ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa la cantidad';
+                  }
+                  final cantidad = double.tryParse(value);
+                  if (cantidad == null || cantidad <= 0) {
+                    return 'Cantidad debe ser mayor que 0';
+                  }
+                  return null;
+                },
                 onSaved: (value) {
                   if (value != null && value.isNotEmpty) {
                     _cantidad = double.tryParse(value);
                   }
                 },
+              ),
+              const SizedBox(height: 16),
+              // Campo: Medida
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Unidad de medida *',
+                  hintText: 'Ej: g, ml, unidades, kg...',
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor ingresa la unidad de medida';
+                  }
+                  return null;
+                },
+                onSaved: (value) => _medida = value,
               ),
               const SizedBox(height: 24),
               // Botón de guardar
@@ -82,11 +125,33 @@ class _NewProductScreenState extends State<NewProductScreen> {
                 onPressed: () async {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
+
+                    // Verificar si el código de barras ya existe
+                    if (widget.bar != null) {
+                      final existe = await DatabaseHelper().existeCodigoBarras(
+                        widget.bar!.codigo,
+                      );
+                      if (existe) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '⚠️ El código de barras ${widget.bar!.codigo} ya está registrado para otro producto',
+                            ),
+                            backgroundColor: Colors.orange,
+                          ),
+                        );
+                        return;
+                      }
+                    }
+
                     // Creamos el objeto Alimento
                     final alimento = Alimento(
+                      ID: 0, // ID se generará automáticamente en la base de datos
                       tipo: _tipo!,
-                      preparacion: _preparacion ?? '',
+                      marca: _marca!,
+                      modelo: _modelo ?? '',
                       cantidad: _cantidad ?? 0.0,
+                      medida: _medida!,
                       bar:
                           widget.bar ??
                           Bar(
@@ -108,24 +173,8 @@ class _NewProductScreenState extends State<NewProductScreen> {
                         ),
                       );
 
-                      // Navegar a la pantalla de precios
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PrecioCompraScreen(
-                            tipoProducto: _tipo ?? 'Producto nuevo',
-                          ),
-                        ),
-                      ).then((precio) {
-                        if (precio != null) {
-                          // Volver a la pantalla anterior con el precio
-                          Navigator.pop(context, precio);
-                        } else {
-                          // Si no se ingresó precio, volver normalmente
-                          Navigator.pop(context);
-                        }
-                      });
-
+                      // Volver a la pantalla anterior
+                      Navigator.pop(context);
                     } catch (e) {
                       // Mostrar mensaje de error
                       ScaffoldMessenger.of(context).showSnackBar(

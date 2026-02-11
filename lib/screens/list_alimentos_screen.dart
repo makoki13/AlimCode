@@ -3,8 +3,9 @@
 import 'package:flutter/material.dart';
 import '../database/database_helper.dart';
 import '../models/alimento.dart';
-import '../screens/historial_compras_screen.dart';
 import '../screens/editar_alimento_screen.dart';
+import '../screens/historial_compras_screen.dart';
+import '../screens/precio_compra_screen.dart'; // ← Import necesario para el nuevo botón
 
 class ListAlimentosScreen extends StatefulWidget {
   const ListAlimentosScreen({super.key});
@@ -21,12 +22,10 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
   void initState() {
     super.initState();
     _alimentosFuture = DatabaseHelper().getAlimentos();
-
+    
     // Escuchar cambios en el campo de búsqueda para reconstruir la UI
     _searchController.addListener(() {
-      setState(() {
-        // Solo forzamos reconstrucción; el filtrado se hace en el builder
-      });
+      setState(() {});
     });
   }
 
@@ -38,7 +37,7 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
 
   List<Alimento> _filtrarAlimentos(List<Alimento> alimentos, String query) {
     if (query.isEmpty) return alimentos;
-
+    
     final queryLower = query.toLowerCase().trim();
     return alimentos.where((alimento) {
       return alimento.tipo.toLowerCase().contains(queryLower);
@@ -47,7 +46,12 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
 
   void _limpiarBusqueda() {
     _searchController.clear();
-    // setState() se llama automáticamente gracias al listener del controlador
+  }
+
+  void _cargarAlimentos() {
+    setState(() {
+      _alimentosFuture = DatabaseHelper().getAlimentos();
+    });
   }
 
   @override
@@ -91,7 +95,6 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                 const SizedBox(width: 12.0),
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Forzar reconstrucción para aplicar el filtro actual
                     setState(() {});
                   },
                   icon: const Icon(Icons.search),
@@ -112,8 +115,6 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
             child: FutureBuilder<List<Alimento>>(
               future: _alimentosFuture,
               builder: (context, snapshot) {
-                // ¡IMPORTANTE: NUNCA llamar a setState() aquí dentro!
-
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError) {
@@ -124,7 +125,6 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                   );
                 }
 
-                // Filtrar DIRECTAMENTE sobre snapshot.data (sin cache ni setState)
                 final alimentosFiltrados = _filtrarAlimentos(
                   snapshot.data!,
                   _searchController.text,
@@ -135,21 +135,14 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
+                        const Icon(Icons.search_off, size: 64, color: Colors.grey),
                         const SizedBox(height: 16),
                         Text(
                           _searchController.text.isNotEmpty
                               ? 'No se encontraron alimentos con el nombre "${_searchController.text}"'
                               : 'No hay alimentos guardados.',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
+                          style: const TextStyle(fontSize: 16, color: Colors.grey),
                         ),
                         if (_searchController.text.isNotEmpty) ...[
                           const SizedBox(height: 16),
@@ -205,6 +198,20 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
+                                // Icono 1: Añadir compra (NUEVO - primero por la izquierda)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.add_shopping_cart_outlined,
+                                    size: 22,
+                                    color: Colors.green,
+                                  ),
+                                  onPressed: () {
+                                    _anadirCompra(context, alimento);
+                                  },
+                                  tooltip: 'Añadir compra',
+                                ),
+                                const SizedBox(width: 8),
+                                // Icono 2: Historial de compras
                                 IconButton(
                                   icon: const Icon(
                                     Icons.receipt_outlined,
@@ -216,6 +223,7 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                                   tooltip: 'Ver compras realizadas',
                                 ),
                                 const SizedBox(width: 8),
+                                // Icono 3: Editar
                                 IconButton(
                                   icon: const Icon(
                                     Icons.edit_outlined,
@@ -227,6 +235,7 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                                   tooltip: 'Editar alimento',
                                 ),
                                 const SizedBox(width: 8),
+                                // Icono 4: Eliminar
                                 IconButton(
                                   icon: const Icon(
                                     Icons.delete_outlined,
@@ -254,6 +263,28 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
     );
   }
 
+  void _anadirCompra(BuildContext context, Alimento alimento) async {
+    // Abrir pantalla para introducir precio y registrar compra
+    final resultado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PrecioCompraScreen(
+          tipoProducto: alimento.tipo,
+        ),
+      ),
+    );
+    
+    // Si la compra se registró correctamente, mostrar feedback
+    if (resultado == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Compra de "${alimento.tipo}" registrada'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
   void _mostrarHistorialCompras(BuildContext context, Alimento alimento) {
     Navigator.push(
       context,
@@ -270,8 +301,7 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
         builder: (context) => EditarAlimentoScreen(alimento: alimento),
       ),
     );
-
-    // Si se guardaron cambios con éxito, recargar la lista
+    
     if (resultado == true) {
       _cargarAlimentos();
     }
@@ -305,10 +335,8 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
         await DatabaseHelper().deleteAlimentoByTipo(alimento.tipo);
 
         // Refrescar la lista completa
-        setState(() {
-          _alimentosFuture = DatabaseHelper().getAlimentos();
-        });
-
+        _cargarAlimentos();
+        
         // Feedback de éxito
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -326,11 +354,5 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
         );
       }
     }
-  }
-
-  void _cargarAlimentos() {
-    setState(() {
-      _alimentosFuture = DatabaseHelper().getAlimentos();
-    });
   }
 }

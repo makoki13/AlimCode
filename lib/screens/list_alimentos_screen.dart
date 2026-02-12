@@ -40,7 +40,10 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
 
     final queryLower = query.toLowerCase().trim();
     return alimentos.where((alimento) {
-      return alimento.tipo.toLowerCase().contains(queryLower);
+      return alimento.tipo.toLowerCase().contains(queryLower) ||
+          alimento.marca.toLowerCase().contains(queryLower) ||
+          alimento.modelo.toLowerCase().contains(queryLower) ||
+          alimento.bar.codigo.toLowerCase().contains(queryLower);
     }).toList();
   }
 
@@ -208,9 +211,9 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
                             // Código de barras
                             Text(
                               'Cód: ${alimento.bar.codigo}',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[600],
+                                color: Colors.grey,
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -352,7 +355,7 @@ class _ListAlimentosScreenState extends State<ListAlimentosScreen> {
 
     if (confirmacion == true) {
       try {
-        // Eliminar de la base de datos
+        // Eliminar de la base de datos usando ID (más preciso)
         await DatabaseHelper().deleteAlimentoById(alimento.ID);
 
         // Refrescar la lista completa

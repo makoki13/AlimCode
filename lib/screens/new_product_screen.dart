@@ -21,6 +21,7 @@ class _NewProductScreenState extends State<NewProductScreen> {
   String? _modelo;
   double? _cantidad;
   String? _medida;
+  String? _codigoBarras;
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +120,16 @@ class _NewProductScreenState extends State<NewProductScreen> {
                 },
                 onSaved: (value) => _medida = value,
               ),
+              const SizedBox(height: 16),
+              // Campo: Código de barras
+              TextFormField(
+                decoration: InputDecoration(
+                  labelText: 'Código de barras',
+                  hintText: 'Ej: 1234567890123 (opcional)',
+                  border: const OutlineInputBorder(),
+                ),
+                onSaved: (value) => _codigoBarras = value,
+              ),
               const SizedBox(height: 24),
               // Botón de guardar
               ElevatedButton(
@@ -126,22 +137,15 @@ class _NewProductScreenState extends State<NewProductScreen> {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
 
-                    // Verificar si el código de barras ya existe
-                    if (widget.bar != null) {
-                      final existe = await DatabaseHelper().existeCodigoBarras(
-                        widget.bar!.codigo,
-                      );
-                      if (existe) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '⚠️ El código de barras ${widget.bar!.codigo} ya está registrado para otro producto',
-                            ),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
-                        return;
-                      }
+                    // Usar el código de barras recibido o el ingresado manualmente
+                    String codigoFinal = _codigoBarras ?? '';
+                    if (widget.bar != null && widget.bar!.codigo.isNotEmpty) {
+                      codigoFinal = widget.bar!.codigo;
+                    }
+
+                    // Si no se proporcionó código de barras, usar cadena vacía
+                    if (codigoFinal.isEmpty) {
+                      codigoFinal = '';
                     }
 
                     // Creamos el objeto Alimento
@@ -152,11 +156,7 @@ class _NewProductScreenState extends State<NewProductScreen> {
                       modelo: _modelo ?? '',
                       cantidad: _cantidad ?? 0.0,
                       medida: _medida!,
-                      bar:
-                          widget.bar ??
-                          Bar(
-                            '0000000000000',
-                          ), // Usamos el código de barras recibido
+                      bar: Bar(codigoFinal), // Usamos el código de barras final
                     );
 
                     // Guardamos en la base de datos

@@ -20,14 +20,15 @@ class DatabaseHelper {
     String path = join(await getDatabasesPath(), 'alimentos.db');
     return await openDatabase(
       path,
-      version: 3, // Incrementado a versión 3 para incluir nuevos campos en alimentos
+      version:
+          5, // Incrementado a versión 5 para quitar UNIQUE de codigo_barras
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    // Crear tabla de alimentos con la nueva estructura
+    // Crear tabla de alimentos con la nueva estructura (sin UNIQUE en codigo_barras)
     await db.execute('''
       CREATE TABLE alimentos(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,18 +37,18 @@ class DatabaseHelper {
         modelo TEXT NOT NULL,
         cantidad REAL NOT NULL,
         medida TEXT NOT NULL,
-        codigo_barras TEXT NOT NULL UNIQUE
+        codigo_barras TEXT NOT NULL
       )
     ''');
 
-    // Crear tabla de compras
+    // Crear tabla de compras con clave foránea por ID de alimento
     await db.execute('''
       CREATE TABLE compras(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tipo_alimento TEXT NOT NULL,
+        alimento_id INTEGER NOT NULL,
         fecha TEXT NOT NULL,
         precio REAL NOT NULL,
-        FOREIGN KEY (tipo_alimento) REFERENCES alimentos(tipo) ON DELETE CASCADE
+        FOREIGN KEY (alimento_id) REFERENCES alimentos(id) ON DELETE CASCADE
       )
     ''');
   }
@@ -65,12 +66,12 @@ class DatabaseHelper {
         )
       ''');
     }
-    
+
     if (oldVersion < 3) {
       // Migrar tabla de alimentos a nueva estructura (v2 → v3)
       // 1. Renombrar tabla actual
       await db.execute('ALTER TABLE alimentos RENAME TO alimentos_old');
-      
+
       // 2. Crear nueva tabla con estructura completa
       await db.execute('''
         CREATE TABLE alimentos(
@@ -80,10 +81,10 @@ class DatabaseHelper {
           modelo TEXT NOT NULL DEFAULT '',
           cantidad REAL NOT NULL DEFAULT 0.0,
           medida TEXT NOT NULL DEFAULT '',
-          codigo_barras TEXT NOT NULL UNIQUE
+          codigo_barras TEXT NOT NULL
         )
       ''');
-      
+
       // 3. Copiar datos de la tabla antigua a la nueva (llenando campos nuevos con valores por defecto)
       await db.execute('''
         INSERT INTO alimentos (id, tipo, marca, modelo, cantidad, medida, codigo_barras)
@@ -97,7 +98,68 @@ class DatabaseHelper {
           codigo_barras
         FROM alimentos_old
       ''');
-      
+
+      // 4. Eliminar tabla antigua
+      await db.execute('DROP TABLE alimentos_old');
+    }
+
+    if (oldVersion < 4) {
+      // Migrar tabla de compras para usar ID en lugar de tipo (v3 → v4)
+      // 1. Renombrar tabla actual
+      await db.execute('ALTER TABLE compras RENAME TO compras_old');
+
+      // 2. Crear nueva tabla con clave foránea por ID
+      await db.execute('''
+        CREATE TABLE compras(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          alimento_id INTEGER NOT NULL,
+          fecha TEXT NOT NULL,
+          precio REAL NOT NULL,
+          FOREIGN KEY (alimento_id) REFERENCES alimentos(id) ON DELETE CASCADE
+        )
+      ''');
+
+      // 3. Copiar datos, convirtiendo tipo_alimento a alimento_id
+      await db.execute('''
+        INSERT INTO compras (id, alimento_id, fecha, precio)
+        SELECT 
+          co.id,
+          a.id,
+          co.fecha,
+          co.precio
+        FROM compras_old co
+        JOIN alimentos a ON a.tipo = co.tipo_alimento
+      ''');
+
+      // 4. Eliminar tabla antigua
+      await db.execute('DROP TABLE compras_old');
+    }
+
+    if (oldVersion < 5) {
+      // Migrar tabla de alimentos para quitar UNIQUE de codigo_barras (v4 → v5)
+      // 1. Renombrar tabla actual
+      await db.execute('ALTER TABLE alimentos RENAME TO alimentos_old');
+
+      // 2. Crear nueva tabla sin UNIQUE en codigo_barras
+      await db.execute('''
+        CREATE TABLE alimentos(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          tipo TEXT NOT NULL,
+          marca TEXT NOT NULL,
+          modelo TEXT NOT NULL,
+          cantidad REAL NOT NULL,
+          medida TEXT NOT NULL,
+          codigo_barras TEXT NOT NULL
+        )
+      ''');
+
+      // 3. Copiar datos
+      await db.execute('''
+        INSERT INTO alimentos (id, tipo, marca, modelo, cantidad, medida, codigo_barras)
+        SELECT id, tipo, marca, modelo, cantidad, medida, codigo_barras
+        FROM alimentos_old
+      ''');
+
       // 4. Eliminar tabla antigua
       await db.execute('DROP TABLE alimentos_old');
     }
@@ -113,34 +175,38 @@ class DatabaseHelper {
   Future<int> deleteAlimentoById(int id) async {
     final db = await database;
     // Eliminar primero las compras asociadas
-    await db.delete(
-      'compras',
-      where: 'tipo_alimento = (SELECT tipo FROM alimentos WHERE id = ?)',
-      whereArgs: [id],
-    );
+    await db.delete('compras', where: 'alimento_id = ?', whereArgs: [id]);
     // Luego eliminar el alimento
-    return await db.delete(
-      'alimentos',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('alimentos', where: 'id = ?', whereArgs: [id]);
   }
 
   // Eliminar alimento por tipo (método antiguo mantenido para compatibilidad)
   Future<int> deleteAlimentoByTipo(String tipo) async {
     final db = await database;
-    // Eliminar primero las compras asociadas
-    await db.delete(
-      'compras',
-      where: 'tipo_alimento = ?',
-      whereArgs: [tipo],
-    );
-    // Luego eliminar el alimento
-    return await db.delete(
+
+    // Obtener el ID del alimento por tipo
+    final alimentoResult = await db.query(
       'alimentos',
       where: 'tipo = ?',
       whereArgs: [tipo],
+      limit: 1,
     );
+
+    if (alimentoResult.isEmpty) {
+      return 0; // No se encontró el alimento
+    }
+
+    final alimentoId = alimentoResult.first['id'] as int;
+
+    // Eliminar primero las compras asociadas
+    await db.delete(
+      'compras',
+      where: 'alimento_id = ?',
+      whereArgs: [alimentoId],
+    );
+
+    // Luego eliminar el alimento
+    return await db.delete('alimentos', where: 'tipo = ?', whereArgs: [tipo]);
   }
 
   // Obtener todos los alimentos
@@ -154,7 +220,7 @@ class DatabaseHelper {
   // Actualizar alimento por ID
   Future<int> updateAlimentoById(int id, Alimento alimentoActualizado) async {
     final db = await database;
-    
+
     // Actualizar el alimento
     final rowsAffected = await db.update(
       'alimentos',
@@ -162,24 +228,17 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
-    
-    // Si el tipo cambió, actualizar también las compras asociadas
-    if (rowsAffected > 0) {
-      await db.update(
-        'compras',
-        {'tipo_alimento': alimentoActualizado.tipo},
-        where: 'tipo_alimento = (SELECT tipo FROM alimentos WHERE id = ?)',
-        whereArgs: [id],
-      );
-    }
-    
+
     return rowsAffected;
   }
 
   // Actualizar alimento por tipo (método antiguo mantenido para compatibilidad)
-  Future<int> updateAlimento(String tipoAntiguo, Alimento alimentoActualizado) async {
+  Future<int> updateAlimento(
+    String tipoAntiguo,
+    Alimento alimentoActualizado,
+  ) async {
     final db = await database;
-    
+
     // Verificar si el tipo cambia y si el nuevo ya existe
     if (tipoAntiguo != alimentoActualizado.tipo) {
       final existe = await db.query(
@@ -188,10 +247,12 @@ class DatabaseHelper {
         whereArgs: [alimentoActualizado.tipo, tipoAntiguo],
       );
       if (existe.isNotEmpty) {
-        throw Exception('Ya existe un alimento con el nombre "${alimentoActualizado.tipo}"');
+        throw Exception(
+          'Ya existe un alimento con el nombre "${alimentoActualizado.tipo}"',
+        );
       }
     }
-    
+
     // Actualizar el alimento
     final rowsAffected = await db.update(
       'alimentos',
@@ -199,17 +260,7 @@ class DatabaseHelper {
       where: 'tipo = ?',
       whereArgs: [tipoAntiguo],
     );
-    
-    // Si el tipo cambió, actualizar también las compras asociadas
-    if (tipoAntiguo != alimentoActualizado.tipo) {
-      await db.update(
-        'compras',
-        {'tipo_alimento': alimentoActualizado.tipo},
-        where: 'tipo_alimento = ?',
-        whereArgs: [tipoAntiguo],
-      );
-    }
-    
+
     return rowsAffected;
   }
 
@@ -240,20 +291,45 @@ class DatabaseHelper {
 
   Future<List<Compra>> getComprasPorAlimento(String tipoAlimento) async {
     final db = await database;
-    
+
+    // Primero obtener el ID del alimento
+    final alimentoResult = await db.query(
+      'alimentos',
+      where: 'tipo = ?',
+      whereArgs: [tipoAlimento],
+      limit: 1,
+    );
+
+    if (alimentoResult.isEmpty) {
+      return []; // No se encontró el alimento
+    }
+
+    final alimentoId = alimentoResult.first['id'] as int;
+
+    return await getComprasPorAlimentoId(alimentoId);
+  }
+
+  Future<List<Compra>> getComprasPorAlimentoId(int alimentoId) async {
+    final db = await database;
+
     final List<Map<String, dynamic>> maps = await db.query(
       'compras',
-      where: 'tipo_alimento = ?',
-      whereArgs: [tipoAlimento],
+      where: 'alimento_id = ?',
+      whereArgs: [alimentoId],
       orderBy: 'fecha DESC',
     );
-    
-    return List.generate(maps.length, (i) => Compra.fromMap(maps[i]));
+
+    return List.generate(
+      maps.length,
+      (i) => Compra.fromMapWithId(maps[i], alimentoId),
+    );
   }
+
+  // En database_helper.dart, actualizar el método insertCompra:
 
   Future<int> insertCompra(Compra compra) async {
     final db = await database;
-    
+
     return await db.insert(
       'compras',
       compra.toMap(),
@@ -263,38 +339,50 @@ class DatabaseHelper {
 
   Future<int> deleteCompra(int id) async {
     final db = await database;
-    
-    return await db.delete(
-      'compras',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+
+    return await db.delete('compras', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> deleteComprasPorAlimento(String tipoAlimento) async {
     final db = await database;
-    
+
+    // Primero obtener el ID del alimento
+    final alimentoResult = await db.query(
+      'alimentos',
+      where: 'tipo = ?',
+      whereArgs: [tipoAlimento],
+      limit: 1,
+    );
+
+    if (alimentoResult.isEmpty) {
+      return 0; // No se encontró el alimento
+    }
+
+    final alimentoId = alimentoResult.first['id'] as int;
+
     return await db.delete(
       'compras',
-      where: 'tipo_alimento = ?',
-      whereArgs: [tipoAlimento],
+      where: 'alimento_id = ?',
+      whereArgs: [alimentoId],
     );
   }
 
   Future<List<Compra>> getAllCompras() async {
     final db = await database;
-    
+
     final List<Map<String, dynamic>> maps = await db.query(
       'compras',
       orderBy: 'fecha DESC',
     );
-    
-    return List.generate(maps.length, (i) => Compra.fromMap(maps[i]));
+
+    return List.generate(maps.length, (i) => Compra.fromMapWithId(maps[i]));
   }
+
+  // En database_helper.dart, actualizar el método updateCompra:
 
   Future<int> updateCompra(Compra compra) async {
     final db = await database;
-    
+
     return await db.update(
       'compras',
       compra.toMap(),

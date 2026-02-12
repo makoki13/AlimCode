@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, avoid_print
 
 import 'package:alimcode/screens/list_alimentos_screen.dart';
 import 'package:alimcode/services/local_service.dart';
@@ -15,12 +15,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Bar bar = Bar('0000000000001'); // Variable compartida
+  late Bar bar = Bar('0000000000000'); // Variable compartida
 
   @override
   void initState() {
     super.initState();
-    bar = Bar('0000000000030'); // Inicializamos aquí
+    bar = Bar('0000000000000'); // Inicializamos aquí
   }
 
   @override

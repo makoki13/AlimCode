@@ -10,10 +10,7 @@ import '../models/compra.dart';
 class PrecioCompraScreen extends StatefulWidget {
   final String tipoProducto; // Nombre del producto para mostrar
 
-  const PrecioCompraScreen({
-    super.key,
-    required this.tipoProducto,
-  });
+  const PrecioCompraScreen({super.key, required this.tipoProducto});
 
   @override
   State<PrecioCompraScreen> createState() => _PrecioCompraScreenState();
@@ -26,13 +23,13 @@ class _PrecioCompraScreenState extends State<PrecioCompraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Buscar el alimento completo para mostrar más detalles
+    // Buscar el alimento completo para obtener su ID
     return FutureBuilder<List<Alimento>>(
       future: DatabaseHelper().getAlimentos(),
       builder: (context, snapshot) {
-        Alimento? productoDetalle;
+        int? alimentoId;
         if (snapshot.hasData) {
-          productoDetalle = snapshot.data!.firstWhere(
+          final producto = snapshot.data!.firstWhere(
             (alimento) => alimento.tipo == widget.tipoProducto,
             orElse: () => Alimento(
               ID: 0,
@@ -44,6 +41,7 @@ class _PrecioCompraScreenState extends State<PrecioCompraScreen> {
               bar: Bar(''),
             ),
           );
+          alimentoId = producto.ID;
         }
 
         return Scaffold(
@@ -76,39 +74,23 @@ class _PrecioCompraScreenState extends State<PrecioCompraScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          productoDetalle?.tipo ?? widget.tipoProducto,
+                          widget.tipoProducto,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        if (productoDetalle?.marca != null && productoDetalle!.marca.isNotEmpty)
-                          Text(
-                            '${productoDetalle.marca} ${productoDetalle.modelo}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        const SizedBox(height: 4),
-                        if (productoDetalle != null && productoDetalle.cantidad > 0)
-                          Text(
-                            '${productoDetalle.cantidad} ${productoDetalle.medida}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Campo de precio
                   TextFormField(
                     enabled: !_isLoading,
-                    keyboardType: TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: InputDecoration(
                       labelText: 'Precio (€)',
                       prefixIcon: const Icon(Icons.euro),
@@ -131,29 +113,35 @@ class _PrecioCompraScreenState extends State<PrecioCompraScreen> {
                     onSaved: (value) => _precio = value,
                     onFieldSubmitted: (value) {
                       if (!_isLoading && _formKey.currentState!.validate()) {
-                        _registrarCompra();
+                        _registrarCompra(alimentoId);
                       }
                     },
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Botones de acción
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: _isLoading ? null : () {
-                            Navigator.pop(context, false); // Cancelar
-                          },
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  Navigator.pop(context, false); // Cancelar
+                                },
                           child: const Text('Cancelar'),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _registrarCompra,
+                          onPressed: _isLoading
+                              ? null
+                              : () => _registrarCompra(alimentoId),
                           child: _isLoading
-                              ? const CircularProgressIndicator(color: Colors.white)
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
                               : const Text('Registrar'),
                         ),
                       ),
@@ -168,38 +156,50 @@ class _PrecioCompraScreenState extends State<PrecioCompraScreen> {
     );
   }
 
-  void _registrarCompra() async {
+  void _registrarCompra(int? alimentoId) async {
+    if (alimentoId == null || alimentoId == 0) {
+      // Mostrar error si no se pudo encontrar el alimento
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No se encontró el producto'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
-    
+
     _formKey.currentState!.save();
     final precio = double.parse(_precio!);
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       // Crear y guardar la compra con fecha actual automática
       final compra = Compra(
         id: 0, // 0 para nuevo registro (AUTOINCREMENT lo asignará)
-        tipoAlimento: widget.tipoProducto,
+        alimentoId: alimentoId, // Usar el ID del alimento
         fecha: DateTime.now(), // ← Fecha actual automática
         precio: precio,
       );
-      
+
       await DatabaseHelper().insertCompra(compra);
-      
+
       // Feedback de éxito
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Compra registrada: ${widget.tipoProducto} - ${precio.toStringAsFixed(2)} €'),
+          content: Text(
+            'Compra registrada: ${widget.tipoProducto} - ${precio.toStringAsFixed(2)} €',
+          ),
           backgroundColor: Colors.green,
         ),
       );
-      
+
       // Volver a la pantalla anterior indicando éxito
       Navigator.pop(context, true);
-      
     } catch (e) {
       // Feedback de error
       ScaffoldMessenger.of(context).showSnackBar(
@@ -208,7 +208,7 @@ class _PrecioCompraScreenState extends State<PrecioCompraScreen> {
           backgroundColor: Colors.red,
         ),
       );
-      
+
       setState(() {
         _isLoading = false;
       });

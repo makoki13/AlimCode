@@ -25,9 +25,7 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
 
   void _cargarCompras() {
     setState(() {
-      _comprasFuture = DatabaseHelper().getComprasPorAlimento(
-        widget.alimento.tipo,
-      );
+      _comprasFuture = DatabaseHelper().getComprasPorAlimentoId(widget.alimento.ID);
     });
   }
 

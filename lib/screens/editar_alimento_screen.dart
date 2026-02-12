@@ -1,4 +1,6 @@
 // lib/screens/editar_alimento_screen.dart
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import '../models/alimento.dart';
 import '../models/bar.dart';
@@ -243,7 +245,7 @@ class _EditarAlimentoScreenState extends State<EditarAlimentoScreen> {
       // Feedback de éxito
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ "${tipoNuevo}" actualizado correctamente'),
+          content: Text('✅ "$tipoNuevo" actualizado correctamente'),
           backgroundColor: Colors.green,
         ),
       );

@@ -16,6 +16,7 @@ class EditarCompraScreen extends StatefulWidget {
 class _EditarCompraScreenState extends State<EditarCompraScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _precioController;
+  String _nombreProducto = '';
   bool _isLoading = false;
 
   @override
@@ -24,6 +25,35 @@ class _EditarCompraScreenState extends State<EditarCompraScreen> {
     _precioController = TextEditingController(
       text: widget.compra.precio.toStringAsFixed(2),
     );
+
+    // Cargar el nombre del producto basado en el ID
+    _cargarNombreProducto();
+  }
+
+  void _cargarNombreProducto() async {
+    try {
+      final db = await DatabaseHelper().database;
+      final result = await db.query(
+        'alimentos',
+        where: 'id = ?',
+        whereArgs: [widget.compra.alimentoId],
+        limit: 1,
+      );
+
+      if (result.isNotEmpty) {
+        setState(() {
+          _nombreProducto = result.first['tipo'] as String;
+        });
+      } else {
+        setState(() {
+          _nombreProducto = 'Producto desconocido';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _nombreProducto = 'Error al cargar producto';
+      });
+    }
   }
 
   @override
@@ -51,7 +81,7 @@ class _EditarCompraScreenState extends State<EditarCompraScreen> {
             children: [
               // Información del producto original
               Text(
-                'Producto: ${widget.compra.tipoAlimento}',
+                'Producto: $_nombreProducto',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -60,10 +90,7 @@ class _EditarCompraScreenState extends State<EditarCompraScreen> {
               const SizedBox(height: 8),
               Text(
                 'Fecha: ${_formatearFecha(widget.compra.fecha)}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 24),
 
@@ -105,9 +132,11 @@ class _EditarCompraScreenState extends State<EditarCompraScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isLoading ? null : () {
-                        Navigator.pop(context, false); // Cancelar
-                      },
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              Navigator.pop(context, false); // Cancelar
+                            },
                       child: const Text('Cancelar'),
                     ),
                   ),
@@ -144,10 +173,10 @@ class _EditarCompraScreenState extends State<EditarCompraScreen> {
     });
 
     try {
-      // Crear compra actualizada (manteniendo id, tipoAlimento y fecha originales)
+      // Crear compra actualizada (manteniendo id, alimentoId y fecha originales)
       final compraActualizada = Compra(
         id: widget.compra.id,
-        tipoAlimento: widget.compra.tipoAlimento,
+        alimentoId: widget.compra.alimentoId,
         fecha: widget.compra.fecha, // Mantener fecha original
         precio: nuevoPrecio,
       );
@@ -158,14 +187,15 @@ class _EditarCompraScreenState extends State<EditarCompraScreen> {
       // Feedback de éxito
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Precio actualizado a ${nuevoPrecio.toStringAsFixed(2)} €'),
+          content: Text(
+            '✅ Precio actualizado a ${nuevoPrecio.toStringAsFixed(2)} €',
+          ),
           backgroundColor: Colors.green,
         ),
       );
 
       // Volver indicando éxito
       Navigator.pop(context, true);
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

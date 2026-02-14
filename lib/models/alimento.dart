@@ -34,9 +34,9 @@ class Alimento {
   }
 
   // Método para convertir a mapa (para guardar en base de datos)
+  // En lib/models/alimento.dart
   Map<String, dynamic> toMap() {
-    return {
-      'id': ID,
+    final map = <String, dynamic>{
       'tipo': tipo,
       'marca': marca,
       'modelo': modelo,
@@ -44,6 +44,13 @@ class Alimento {
       'medida': medida,
       'codigo_barras': bar.codigo,
     };
+
+    // Solo incluir 'id' si es > 0 (para actualizaciones)
+    if (ID > 0) {
+      map['id'] = ID;
+    }
+
+    return map;
   }
 
   // Método para crear una copia con campos modificados (útil para edición)

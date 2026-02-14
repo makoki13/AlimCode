@@ -138,15 +138,20 @@ class _NewProductScreenState extends State<NewProductScreen> {
                     _formKey.currentState!.save();
 
                     // Usar el código de barras recibido o el ingresado manualmente
-                    String codigoFinal = _codigoBarras ?? '';
-                    if (widget.bar != null && widget.bar!.codigo.isNotEmpty) {
-                      codigoFinal = widget.bar!.codigo;
-                    }
+                    String codigoFinal = '';
 
-                    // Si no se proporcionó código de barras, usar cadena vacía
-                    if (codigoFinal.isEmpty) {
-                      codigoFinal = '';
+                    // Solo usar widget.bar si no es el valor por defecto '0000000000000'
+                    if (widget.bar != null &&
+                        widget.bar!.codigo.isNotEmpty &&
+                        widget.bar!.codigo != '0000000000000') {
+                      // Si viene de escaneo y no es el valor por defecto
+                      codigoFinal = widget.bar!.codigo;
+                    } else if (_codigoBarras != null &&
+                        _codigoBarras!.isNotEmpty) {
+                      // Si se ingresó manualmente
+                      codigoFinal = _codigoBarras!;
                     }
+                    // Si no se proporcionó ninguno, se deja como cadena vacía
 
                     // Creamos el objeto Alimento
                     final alimento = Alimento(

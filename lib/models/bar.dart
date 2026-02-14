@@ -1,8 +1,12 @@
+// lib/models/bar.dart
 class Bar {
   final String ean13;
 
   Bar(this.ean13)
-    : assert(ean13.length == 13, 'El código debe tener 13 caracteres');
+    : assert(
+        ean13.isEmpty || ean13.length == 13,
+        'El código debe tener 13 caracteres o estar vacío',
+      );
 
   @override
   String toString() => ean13;

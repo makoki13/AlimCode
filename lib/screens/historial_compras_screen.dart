@@ -25,7 +25,9 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
 
   void _cargarCompras() {
     setState(() {
-      _comprasFuture = DatabaseHelper().getComprasPorAlimentoId(widget.alimento.ID);
+      _comprasFuture = DatabaseHelper().getComprasPorAlimentoId(
+        widget.alimento.ID,
+      );
     });
   }
 
@@ -76,7 +78,10 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
                     Text(
                       '${widget.alimento.marca} ${widget.alimento.modelo}',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                     const SizedBox(height: 30),
                     ElevatedButton.icon(
@@ -113,17 +118,11 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
             // Información del producto
             Text(
               '${widget.alimento.tipo}',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             Text(
               '${widget.alimento.marca} ${widget.alimento.modelo}',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 8),
             // Fecha y cantidad del producto
@@ -138,10 +137,7 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
                 const SizedBox(width: 16),
                 Text(
                   '${widget.alimento.cantidad} ${widget.alimento.medida}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
             ),
@@ -189,9 +185,7 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
                 ),
               ],
             ),
-            if (!esUltima) ...[
-              const Divider(height: 1, thickness: 0.5),
-            ],
+            if (!esUltima) ...[const Divider(height: 1, thickness: 0.5)],
           ],
         ),
       ),
@@ -239,12 +233,11 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
     final resultado = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => PrecioCompraScreen(
-          tipoProducto: widget.alimento.tipo,
-        ),
+        builder: (context) =>
+            PrecioCompraScreen(tipoProducto: widget.alimento.tipo),
       ),
     );
-    
+
     // Si la compra se registró correctamente (resultado == true), recargar el historial
     if (resultado == true) {
       _cargarCompras();
@@ -252,16 +245,203 @@ class _HistorialComprasScreenState extends State<HistorialComprasScreen> {
   }
 
   void _modificarCompra(Compra compra) async {
-    // TODO: Implementar funcionalidad de modificación
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Modificar compra de ${compra.precio.toStringAsFixed(2)} €')),
+    // Mostrar diálogo para editar el precio
+    final nuevoPrecio = await showDialog<double?>(
+      context: context,
+      builder: (context) => _EditarPrecioDialog(
+        precioActual: compra.precio,
+        titulo: 'Editar precio de compra',
+        subtitulo: '${widget.alimento.tipo}\n${_formatearFecha(compra.fecha)}',
+      ),
+    );
+
+    // Si el usuario confirmó la edición
+    if (nuevoPrecio != null) {
+      try {
+        // Crear compra actualizada (manteniendo id, alimentoId y fecha originales)
+        final compraActualizada = Compra(
+          id: compra.id,
+          alimentoId: compra.alimentoId,
+          fecha: compra.fecha, // Mantener fecha original
+          precio: nuevoPrecio,
+        );
+
+        // Actualizar en base de datos
+        await DatabaseHelper().updateCompra(compraActualizada);
+
+        // Recargar el historial
+        _cargarCompras();
+
+        // Feedback de éxito
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ Precio actualizado a ${nuevoPrecio.toStringAsFixed(2)} €',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        // Feedback de error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('❌ Error al guardar el precio'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _eliminarCompra(Compra compra) async {
+    // Mostrar diálogo de confirmación
+    final confirmacion = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
+        content: Text(
+          '¿Estás seguro de que quieres eliminar esta compra de ${compra.precio.toStringAsFixed(2)} €?\n\n'
+          'Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    // Si el usuario confirma la eliminación
+    if (confirmacion == true) {
+      try {
+        // Eliminar de la base de datos
+        await DatabaseHelper().deleteCompra(compra.id);
+
+        // Recargar el historial
+        _cargarCompras();
+
+        // Feedback de éxito
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ Compra de ${compra.precio.toStringAsFixed(2)} € eliminada',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        // Feedback de error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('❌ Error al eliminar la compra'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+}
+
+// Diálogo personalizado para editar el precio
+class _EditarPrecioDialog extends StatefulWidget {
+  final double precioActual;
+  final String titulo;
+  final String subtitulo;
+
+  const _EditarPrecioDialog({
+    required this.precioActual,
+    required this.titulo,
+    required this.subtitulo,
+  });
+
+  @override
+  State<_EditarPrecioDialog> createState() => _EditarPrecioDialogState();
+}
+
+class _EditarPrecioDialogState extends State<_EditarPrecioDialog> {
+  late TextEditingController _controller;
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.precioActual.toStringAsFixed(2),
     );
   }
 
-  void _eliminarCompra(Compra compra) {
-    // TODO: Implementar funcionalidad de eliminación
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Eliminar compra de ${compra.precio.toStringAsFixed(2)} €')),
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.titulo),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.subtitulo,
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          Form(
+            key: _formKey,
+            child: TextFormField(
+              controller: _controller,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Nuevo precio (€)',
+                prefixIcon: const Icon(Icons.euro),
+                border: const OutlineInputBorder(),
+                helperText: 'Ej: 2.45',
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Por favor ingresa un precio';
+                }
+                final precio = double.tryParse(value);
+                if (precio == null || precio <= 0) {
+                  return 'El precio debe ser mayor que 0';
+                }
+                if (precio > 1000) {
+                  return '¿Precio realista? Revisa el valor';
+                }
+                return null;
+              },
+              onFieldSubmitted: (value) {
+                if (_formKey.currentState!.validate()) {
+                  _guardar();
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(null),
+          child: const Text('Cancelar'),
+        ),
+        TextButton(onPressed: _guardar, child: const Text('Guardar')),
+      ],
     );
+  }
+
+  void _guardar() {
+    if (_formKey.currentState!.validate()) {
+      final nuevoPrecio = double.parse(_controller.text.trim());
+      Navigator.of(context).pop(nuevoPrecio);
+    }
   }
 }
